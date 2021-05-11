@@ -1,0 +1,28 @@
+package com.example.demo;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@SpringBootApplication
+@RestController
+public class DemoDjlSpringBootSentenceSimilarityApplication {
+
+    private static final String[] newspaperExample = new String [] {
+	    	"Obama speaks to the media in Illinois",
+	    	"The President greets the press in Chicago",
+	    	"The President speaks to the newspapers in Illinois",
+	    	"The Queen of England writes a letter to Obama",
+	    };
+	
+	public static void main(String[] args) {
+		SpringApplication.run(DemoDjlSpringBootSentenceSimilarityApplication.class, args);
+	}
+
+	@GetMapping (value="predict")
+	public void predict() {
+		
+	}
+	
+}

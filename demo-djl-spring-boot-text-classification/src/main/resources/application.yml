@@ -1,0 +1,6 @@
+
+djl:
+  application-type: TEXT_CLASSIFICATION
+  input-class: java.lang.String[]
+  output-class: ai.djl.modality.Classifications.Classification[]
+  

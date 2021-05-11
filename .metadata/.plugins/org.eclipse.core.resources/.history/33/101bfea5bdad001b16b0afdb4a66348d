@@ -1,0 +1,7 @@
+
+djl:
+  application-type: TEXT_CLASSIFICATION
+  input-class: String
+  output-class: Classification
+	
+	

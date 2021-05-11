@@ -1,0 +1,4 @@
+
+djl:
+	djl.application-type: TEXT_EMBEDDING
+	
