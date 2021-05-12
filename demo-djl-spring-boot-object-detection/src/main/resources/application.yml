@@ -3,5 +3,10 @@ djl:
   application-type: OBJECT_DETECTION
   input-class: ai.djl.modality.cv.Image
   output-class: ai.djl.modality.cv.output.DetectedObjects
- 
- 
+ # Define filters that matches your application's need
+ # model-filter:
+        # size: 512
+  #      backbone: vgg16
+    # Override default pre-processing/post-processing behavior
+  #  arguments:
+   #     threshold: 0.2
