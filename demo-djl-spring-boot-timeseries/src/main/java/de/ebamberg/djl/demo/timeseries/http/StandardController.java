@@ -2,6 +2,8 @@ package de.ebamberg.djl.demo.timeseries.http;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -18,7 +20,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ai.djl.MalformedModelException;
 import ai.djl.Model;
@@ -33,6 +34,10 @@ import de.ebamberg.djl.demo.timeseries.repository.ModelRepository;
 import de.ebamberg.djl.demo.timeseries.training.TimeSeriesDataPreparator;
 import de.ebamberg.djl.demo.timeseries.training.TrainerService;
 import de.ebamberg.djl.demo.timeseries.utils.MinMaxScaler;
+import de.ebamberg.djl.lib.timeseries.Forecast;
+
+import static de.ebamberg.djl.demo.timeseries.utils.NDArraySerializer.ndarrayAsString; 
+import static de.ebamberg.djl.demo.timeseries.utils.NDArraySerializer.stringToFloatArray;
 
 @RestController
 public class StandardController {
@@ -52,7 +57,7 @@ public class StandardController {
 	private BlockFactory blockFactory;
 	
 	@Autowired
-	private Translator<float[][],float[]> translator;
+	private Translator<float[][],Forecast> translator;
 	
 	@Value ("${timeseries.lookback:4}")
 	private int lookback;
@@ -62,9 +67,7 @@ public class StandardController {
 	
 	@Value ("${timeseries.modelname:savedmodel}")
 	private String modelName;
-	
-	@Autowired
-	private ObjectMapper jsonMapper;
+
 	
 
 	private Model modelForPrediction;
@@ -118,17 +121,16 @@ public class StandardController {
 	}
 	
 	/**
-	 * curl -X GET http://127.0.0.1:8080/timeseries/predict
+	 * curl -X GET http://127.0.0.1:8080/timeseries/predict?lookforward=5
 	 * @return
 	 * @throws TranslateException
 	 * @throws JsonProcessingException 
 	 * @throws JsonMappingException 
 	 */
 	@GetMapping (value="timeseries/predict")
-	public float[][] predict() throws TranslateException, JsonMappingException, JsonProcessingException {
-		int lookforward=5;
+	public List<Forecast> predict(@RequestParam (defaultValue = "5" ,required = false) int lookforward) throws TranslateException, JsonMappingException, JsonProcessingException {
 		
-		var lastSample=jsonMapper.readValue(modelForPrediction.getProperty("lastSample"),float[].class);
+		var lastSample= stringToFloatArray( modelForPrediction.getProperty("lastSample") );
 		
 		var data=new float[lastSample.length][] ;
 		for (int i=0; i<lastSample.length; i++) {
@@ -139,14 +141,15 @@ public class StandardController {
 
 		var predictor=modelForPrediction.newPredictor(translator);
 		
-		float[][] result=new float[lookforward][];
+		var result=new ArrayList<Forecast>(lookforward);
 		for (int i=0;i<lookforward;i++) {
-			result[i]=predictor.predict(data);
+			Forecast forecast=predictor.predict(data);
+			result.add(forecast);
 			
 			for (int j=1;j<data.length;j++) {
 				data[j-1]=data[j];
 			}
-			data[data.length-1]=result[i];
+			data[data.length-1]=forecast.getForecastValue();
 			
 		}
 		return result;
@@ -157,9 +160,9 @@ public class StandardController {
 		MinMaxScaler scaler=new MinMaxScaler();
 		TimeSeriesDataPreparator timeSeriesDataPreparator=new TimeSeriesDataPreparator(manager, model,scaler);
 		var data= timeSeriesDataPreparator.prepare(rawData, lookback);
-		model.setProperty("minScale", jsonMapper.writeValueAsString(scaler.getMin().toFloatArray()));
-		model.setProperty("maxScale", jsonMapper.writeValueAsString(scaler.getMax().toFloatArray()));
-		model.setProperty("lastSample", jsonMapper.writeValueAsString( scaler.inverseTransform(data.get(0).get(-1)).toFloatArray() ));
+		model.setProperty("minScale", ndarrayAsString(scaler.getMin()));
+		model.setProperty("maxScale", ndarrayAsString(scaler.getMax()));
+		model.setProperty("lastSample", ndarrayAsString( scaler.inverseTransform(data.get(0).get(-1))) );
 		
 		var	 dataset = new ArrayDataset.Builder()
 		       .setData(data.get(0))
