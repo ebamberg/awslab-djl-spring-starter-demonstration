@@ -1,0 +1,6 @@
+timeseries:
+  lookback: 4
+  epochs: 200
+  modelname: airpassengers
+repository:
+  path: C:/dev/src/workspaces/demonstration/demo-djl-spring-boot-timeseries
