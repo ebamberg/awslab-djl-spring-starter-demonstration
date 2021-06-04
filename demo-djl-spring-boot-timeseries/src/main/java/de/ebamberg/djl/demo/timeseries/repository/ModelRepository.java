@@ -24,16 +24,6 @@ public class ModelRepository {
 		model.save(Path.of(modelPath), model.getName());
 	}
 	
-	public void load(Model model) throws MalformedModelException, IOException {
-		try {
-			model.load(Path.of(modelPath), model.getName());
-			
-			
-			
-		} catch (MalformedModelException | IOException ex) {
-			model.close();
-			throw ex;
-		}
-	}
+
 
 }

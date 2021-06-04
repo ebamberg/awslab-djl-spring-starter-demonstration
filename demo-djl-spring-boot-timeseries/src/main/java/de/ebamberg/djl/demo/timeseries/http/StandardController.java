@@ -3,7 +3,11 @@ package de.ebamberg.djl.demo.timeseries.http;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -13,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,6 +39,7 @@ import de.ebamberg.djl.demo.timeseries.repository.ModelRepository;
 import de.ebamberg.djl.demo.timeseries.training.TimeSeriesDataPreparator;
 import de.ebamberg.djl.demo.timeseries.training.TrainerService;
 import de.ebamberg.djl.demo.timeseries.utils.MinMaxScaler;
+import de.ebamberg.djl.lib.core.ModelStore;
 import de.ebamberg.djl.lib.timeseries.Forecast;
 
 import static de.ebamberg.djl.demo.timeseries.utils.NDArraySerializer.ndarrayAsString; 
@@ -51,7 +57,7 @@ public class StandardController {
 	private TrainerService trainerService;
 	
 	@Autowired
-	private ModelRepository modelRepository;
+	private ModelStore modelStore;
 	
 	@Autowired
 	private BlockFactory blockFactory;
@@ -64,71 +70,46 @@ public class StandardController {
 	
 	@Value ("${timeseries.epochs:200}")
 	private int epochs;
-	
-	@Value ("${timeseries.modelname:savedmodel}")
-	private String modelName;
 
-	
 
-	private Model modelForPrediction;
-
-	
-	@PostConstruct
-	public void loadModelOnStartup() throws IOException, MalformedModelException {
-		modelForPrediction=createEmptyModel( modelName );
-		try {
-		modelRepository.load(modelForPrediction);
-		} catch (FileNotFoundException ex) {
-			log.warn("no saved model found");
-		}
-	}
-	
-	@PreDestroy
-	public void unloadModelBeforeShutdown() {
-		if (modelForPrediction!=null) {
-			modelForPrediction.close();
-		}
-	}
 	
 	
 	/**
-	 * curl -X POST http://127.0.0.1:8080/timeseries/train -F "data=@./src/main/resources/airline-passengers.csv"
+	 * curl -X POST http://127.0.0.1:8080/timeseries/airlinepassangers -F "data=@./src/main/resources/airline-passengers.csv"
  
 	 * @param file
 	 * @return
 	 * @throws Exception
 	 */
-	@PostMapping (value="timeseries/train")
-	public String upload(@RequestParam("data") MultipartFile file) throws Exception {
+	@PostMapping (value="timeseries/{modelName}")
+	public String upload(@RequestParam("data") MultipartFile file, @PathVariable String modelName) throws Exception {
 		float[][] rawData=dataSource.read(file.getInputStream());
 		String result="";
-		try(var manager = NDManager.newBaseManager(); var model=createEmptyModel( modelName ) ) {
+		try(var manager = NDManager.newBaseManager(); var model=modelStore.createEmptyModel( modelName ) ) {
 			// preparing the dataset
 			var dataset=buildFramedTimeSeriesDataSet(manager, model,  rawData, lookback);			
 			//train the dataset
 			trainerService.train(model, dataset,epochs);
 			// store the model 
-			modelRepository.store(model);
+			modelStore.store(model);
 
 		}
 		return result;
 	}
 
-	private Model createEmptyModel(String name) {
-		var model=Model.newInstance(name);
-		model.setBlock(blockFactory.newBlock(null));
-		return model;
-	}
+
 	
 	/**
-	 * curl -X GET http://127.0.0.1:8080/timeseries/predict?lookforward=5
+	 * curl -X GET http://127.0.0.1:8080/timeseries/airlinepassangers?lookforward=5
 	 * @return
 	 * @throws TranslateException
-	 * @throws JsonProcessingException 
-	 * @throws JsonMappingException 
+	 * @throws IOException 
+	 * @throws MalformedModelException 
 	 */
-	@GetMapping (value="timeseries/predict")
-	public List<Forecast> predict(@RequestParam (defaultValue = "5" ,required = false) int lookforward) throws TranslateException, JsonMappingException, JsonProcessingException {
+	@GetMapping (value="timeseries/{modelName}")
+	public List<Forecast> predict(@RequestParam (defaultValue = "5" ,required = false) int lookforward,@PathVariable String modelName) throws TranslateException, MalformedModelException, IOException {
+
+		var modelForPrediction=modelStore.findModel(modelName);
 		
 		var lastSample= stringToFloatArray( modelForPrediction.getProperty("lastSample") );
 		
@@ -137,8 +118,6 @@ public class StandardController {
 			data[i]=new float[] {lastSample[i]};
 		}
 		
-	//	data=new float[][] {{472.0f}, {535.0f}, {622.0f}, {606.0f}};
-
 		var predictor=modelForPrediction.newPredictor(translator);
 		
 		var result=new ArrayList<Forecast>(lookforward);
