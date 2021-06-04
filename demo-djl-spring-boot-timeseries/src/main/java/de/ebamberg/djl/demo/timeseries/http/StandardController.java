@@ -44,9 +44,14 @@ import de.ebamberg.djl.lib.timeseries.Forecast;
 
 import static de.ebamberg.djl.demo.timeseries.utils.NDArraySerializer.ndarrayAsString; 
 import static de.ebamberg.djl.demo.timeseries.utils.NDArraySerializer.stringToFloatArray;
+import static de.ebamberg.djl.lib.core.StandardModelProperties.PROPERTY_MIN_SCALE;
+import static de.ebamberg.djl.lib.core.StandardModelProperties.PROPERTY_MAX_SCALE;
+import static de.ebamberg.djl.lib.core.StandardModelProperties.PROPERTY_LAST_SAMPLE;
 
 @RestController
 public class StandardController {
+
+
 
 	private static Logger log=LoggerFactory.getLogger(StandardController.class);
 	
@@ -59,8 +64,6 @@ public class StandardController {
 	@Autowired
 	private ModelStore modelStore;
 	
-	@Autowired
-	private BlockFactory blockFactory;
 	
 	@Autowired
 	private Translator<float[][],Forecast> translator;
@@ -111,7 +114,7 @@ public class StandardController {
 
 		var modelForPrediction=modelStore.findModel(modelName);
 		
-		var lastSample= stringToFloatArray( modelForPrediction.getProperty("lastSample") );
+		var lastSample= stringToFloatArray( modelForPrediction.getProperty(PROPERTY_LAST_SAMPLE) );
 		
 		var data=new float[lastSample.length][] ;
 		for (int i=0; i<lastSample.length; i++) {
@@ -139,9 +142,9 @@ public class StandardController {
 		MinMaxScaler scaler=new MinMaxScaler();
 		TimeSeriesDataPreparator timeSeriesDataPreparator=new TimeSeriesDataPreparator(manager, model,scaler);
 		var data= timeSeriesDataPreparator.prepare(rawData, lookback);
-		model.setProperty("minScale", ndarrayAsString(scaler.getMin()));
-		model.setProperty("maxScale", ndarrayAsString(scaler.getMax()));
-		model.setProperty("lastSample", ndarrayAsString( scaler.inverseTransform(data.get(0).get(-1))) );
+		model.setProperty(PROPERTY_MIN_SCALE, ndarrayAsString(scaler.getMin()));
+		model.setProperty(PROPERTY_MAX_SCALE, ndarrayAsString(scaler.getMax()));
+		model.setProperty(PROPERTY_LAST_SAMPLE, ndarrayAsString( scaler.inverseTransform(data.get(0).get(-1))) );
 		
 		var	 dataset = new ArrayDataset.Builder()
 		       .setData(data.get(0))

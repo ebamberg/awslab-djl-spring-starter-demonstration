@@ -17,13 +17,16 @@ import ai.djl.training.loss.Loss;
 import ai.djl.training.optimizer.Optimizer;
 import ai.djl.translate.TranslateException;
 
+import static de.ebamberg.djl.lib.core.StandardModelProperties.PROPERTY_LOOKBACK;
+import static de.ebamberg.djl.lib.core.StandardModelProperties.PROPERTY_FEATURES;
+
 @Component
 public class TrainerService {
 
 	public Float train(Model model, Dataset dataset,int epochs) throws IOException, TranslateException {
 		
-				long timestepsPerSample=Long.valueOf(model.getProperty("lookback"));
-				long number_of_features=Long.valueOf(model.getProperty("features"));
+				long timestepsPerSample=Long.valueOf(model.getProperty(PROPERTY_LOOKBACK));
+				long number_of_features=Long.valueOf(model.getProperty(PROPERTY_FEATURES));
 		
 		 	   TrainingConfig trainingConfig=new DefaultTrainingConfig(Loss.l2Loss())
 					.optOptimizer(Optimizer.adam().build())

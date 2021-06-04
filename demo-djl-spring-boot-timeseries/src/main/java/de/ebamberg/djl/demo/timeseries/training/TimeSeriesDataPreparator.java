@@ -9,9 +9,12 @@ import ai.djl.ndarray.NDList;
 import ai.djl.ndarray.NDManager;
 import ai.djl.ndarray.index.NDIndex;
 import de.ebamberg.djl.demo.timeseries.utils.MinMaxScaler;
+import static de.ebamberg.djl.lib.core.StandardModelProperties.PROPERTY_LOOKBACK;
+import static de.ebamberg.djl.lib.core.StandardModelProperties.PROPERTY_FEATURES;
 
 public class TimeSeriesDataPreparator {
 	
+
 	private NDManager manager;
 	private Model model;
 	private MinMaxScaler scaler;
@@ -32,8 +35,8 @@ public class TimeSeriesDataPreparator {
 		    var timesteps = data.getShape().get(0);
 		    var number_of_features = data.getShape().get(1);
 		    
-		    model.setProperty("features", String.valueOf(number_of_features));
-		    model.setProperty("lookback", String.valueOf(lookback));
+		    model.setProperty(PROPERTY_FEATURES, String.valueOf(number_of_features));
+		    model.setProperty(PROPERTY_LOOKBACK, String.valueOf(lookback));
 		    
 		    var listOfXYData=temporize(data,lookback);
 		    

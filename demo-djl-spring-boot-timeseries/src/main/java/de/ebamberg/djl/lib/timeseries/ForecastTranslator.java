@@ -13,7 +13,8 @@ import ai.djl.translate.Batchifier;
 import ai.djl.translate.Translator;
 import ai.djl.translate.TranslatorContext;
 import de.ebamberg.djl.demo.timeseries.utils.MinMaxScaler;
-
+import static de.ebamberg.djl.lib.core.StandardModelProperties.PROPERTY_MIN_SCALE;
+import static de.ebamberg.djl.lib.core.StandardModelProperties.PROPERTY_MAX_SCALE;
 public class ForecastTranslator implements Translator<float[][], Forecast> {
 
 	private static Map<String, MinMaxScaler> scalerCache=Collections.synchronizedMap(new WeakHashMap<>());
@@ -49,8 +50,8 @@ public class ForecastTranslator implements Translator<float[][], Forecast> {
 	
 	private MinMaxScaler recreateScalerFromModel(TranslatorContext ctx, NDManager manager) {
 		MinMaxScaler scaler = new MinMaxScaler();
-		var min = stringToNDArray(manager,ctx.getModel().getProperty("minScale"));
-		var max = stringToNDArray(manager,ctx.getModel().getProperty("maxScale"));				
+		var min = stringToNDArray(manager,ctx.getModel().getProperty(PROPERTY_MIN_SCALE));
+		var max = stringToNDArray(manager,ctx.getModel().getProperty(PROPERTY_MAX_SCALE));				
 		scaler.fitToRange(min, max);
 		ctx.setAttachment("scaler", scaler);
 		return scaler;
