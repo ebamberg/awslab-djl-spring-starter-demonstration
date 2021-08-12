@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+	<head>
+	    <title>Rocket Launcher</title>
+	    <link href="/webjars/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+	    <link href="/main.css" rel="stylesheet">
+	    <script src="/webjars/jquery/jquery.min.js"></script>
+	    <script src="/webjars/sockjs-client/sockjs.min.js"></script>
+	    <script src="/webjars/stomp-websocket/stomp.min.js"></script>
+
+	    
+	    <script type="text/javascript">
+	    
+	    function launch() {
+	    	document.getElementById("rocket").innerHtml="<img src='rocket.gif'/>"
+	    	}
+	    
+		function println(text) {
+	    	document.getElementById("output").innerHTML += (text+"<br/>");
+		}
+		
+		function counter(countdownValue) {
+	    	document.getElementById("counter").innerHTML = ("T-"+countdownValue);
+	    	if (countdownValue==0) launch();
+		}
+	    
+
+		stompClient=null;
+		
+		window.addEventListener("load", function() {
+			println("connecting....")
+			const sock=new SockJS("http://localhost:8080/ws-router");
+			stompClient=Stomp.over(sock);
+			stompClient.connect({},function(frame){
+				console.log(frame);
+				println("connected !")
+				
+				stompClient.subscribe("/topic/countdown", function (message) {
+					counter(message.body)
+					
+				})
+				
+				stompClient.subscribe("/user/queue/missionStatusResponse", function (message) {
+					alert(message.body)
+				})
+				
+			});
+			
+		});
+		
+		function abortMission() {
+			stompClient.send("/websocket/abortMission",{},"");
+		}
+	
+		</script>
+			    
+		</head>
+	<body style="">
+	   
+<div style="display: flex;" >
+  <div style="min-height: 500px; flex: 1;background-image: url('/mission-control.jpg'); background-repeat: no-repeat; background-size: cover; color: white;">
+  	
+  </div>
+  <div style=" flex: 1;" id="rocket" >
+  	<h1>Cape Canaveral - Mission Control Center</h1>
+
+	<div id="output"/>
+	
+	
+	<button onclick="abortMission()" style="font-size: 32px;background-color: #04AA6D;color: white;">Abort Mission</button>
+	
+	<div id="counter" style="font-size: 68px;"/>
+  </div>
+</div>
+
+
+
+	
+	</body>
+</html>
