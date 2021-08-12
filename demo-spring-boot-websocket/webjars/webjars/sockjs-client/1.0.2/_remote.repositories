@@ -1,0 +1,5 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Wed Aug 11 15:56:45 BST 2021
+sockjs-client-1.0.2-javadoc.jar>central=
+sockjs-client-1.0.2.jar>central=
+sockjs-client-1.0.2.pom>central=
